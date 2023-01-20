@@ -1,0 +1,97 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Parameters:
+  ConnectionsUrl:
+    Description: The HTTP URL to send a message to a client via the Websocket API Gateway
+    Type: String
+
+Resources:
+  LambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: connect
+      Architectures: [arm64]
+      Runtime: provided.al2
+      MemorySize: 128
+      Timeout: 10
+      Handler: main
+      TracingConfig:
+        Mode: Active
+      PackageType: Zip
+      Role: !GetAtt LambdaFunctionRole.Arn
+      Code:
+        S3Bucket: ffrub-etc
+        S3Key: connect-main.zip
+
+  LambdaFunction2:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: sendmessage
+      Architectures: [arm64]
+      Runtime: provided.al2
+      MemorySize: 128
+      Timeout: 10
+      Handler: main
+      TracingConfig:
+        Mode: Active
+      PackageType: Zip
+      Role: !GetAtt LambdaFunctionRole.Arn
+      Code:
+        S3Bucket: ffrub-etc
+        S3Key: sendmessage-main.zip
+
+  LambdaFunction3:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: serversendmessage
+      Architectures: [arm64]
+      Runtime: provided.al2
+      MemorySize: 128
+      Timeout: 10
+      Handler: main
+      TracingConfig:
+        Mode: Active
+      PackageType: Zip
+      Role: !GetAtt LambdaFunctionRole.Arn
+      Code:
+        S3Bucket: ffrub-etc
+        S3Key: serversendmessage-main.zip
+      Environment:
+        Variables:
+          CONNECTIONS_URL: !Ref ConnectionsUrl
+
+  LambdaFunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+              - lambda.amazonaws.com
+          Action:
+            - sts:AssumeRole
+      Path: "/"
+      Policies:
+        - PolicyName: AppendToLogsPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: "*"
+        - PolicyName: InvokeGateway
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - execute-api:Invoke
+                  - execute-api:ManageConnections
+                Resource: "arn:aws:execute-api:*:*:*"
+
+

@@ -5,11 +5,20 @@
 *.so
 *.dylib
 
+# Packages
+*.zip
+
+# Lambda binaries
+**/bootstrap
+
 # Test binary, built with `go test -c`
 *.test
 
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
+
+# Parameters for the cloudformation template
+parameters.json
 
 # Dependency directories (remove the comment below to include it)
 # vendor/
