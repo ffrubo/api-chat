@@ -12,6 +12,7 @@ Resources:
       Name: "WebSocketApi"
       ProtocolType: WEBSOCKET
       RouteSelectionExpression: "$request.body.action"
+
   ConnectRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties:
@@ -22,6 +23,7 @@ Resources:
         - "/"
         - - "integrations"
           - !Ref ConnectIntegration
+
   ConnectIntegration:
     Type: AWS::ApiGatewayV2::Integration
     Properties:
@@ -29,6 +31,7 @@ Resources:
       IntegrationType: AWS_PROXY
       IntegrationUri:
         Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ConnectFunction.Arn}/invocations
+
   SendmessageRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties:
@@ -40,6 +43,7 @@ Resources:
         - "/"
         - - "integrations"
           - !Ref SendmessageIntegration
+
   SendmessageIntegration:
     Type: AWS::ApiGatewayV2::Integration
     Properties:
@@ -47,12 +51,14 @@ Resources:
       IntegrationType: AWS_PROXY
       IntegrationUri:
         Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${SendmessageFunction.Arn}/invocations
+
   SendmessageRouteResponse:
     Type: AWS::ApiGatewayV2::RouteResponse
     Properties:
       ApiId: !Ref WebSocketApi
       RouteId: !Ref SendmessageRoute
       RouteResponseKey: $default
+
   Deployment:
     Type: AWS::ApiGatewayV2::Deployment
     DependsOn:
@@ -60,6 +66,7 @@ Resources:
       - SendmessageRoute
     Properties:
       ApiId: !Ref WebSocketApi
+
   Stage:
     Type: AWS::ApiGatewayV2::Stage
     Properties:
@@ -83,6 +90,7 @@ Resources:
       Code:
         S3Bucket: ffrub-etc
         S3Key: connect-main.zip
+
   ConnectPermission:
     Type: AWS::Lambda::Permission
     DependsOn:
@@ -109,6 +117,7 @@ Resources:
       Code:
         S3Bucket: ffrub-etc
         S3Key: sendmessage-main.zip
+
   SendmessagePermission:
     Type: AWS::Lambda::Permission
     DependsOn:
@@ -138,6 +147,7 @@ Resources:
       Environment:
         Variables:
           CONNECTIONS_URL: !Sub "https://${WebSocketApi}.execute-api.${AWS::Region}.amazonaws.com/${Stage}/@connections"
+
   ServersendmessagePermission:
     Type: AWS::Lambda::Permission
     DependsOn:
