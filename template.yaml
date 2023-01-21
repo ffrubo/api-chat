@@ -125,6 +125,55 @@ Resources:
       Principal: apigateway.amazonaws.com
       # SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${WebSocketApi}/*" # tbd - check if that works
 
+  HTTPApi:
+    Type: AWS::ApiGatewayV2::Api
+    Properties:
+      Name: "HTTPApi"
+      ProtocolType: HTTP
+      RouteSelectionExpression: "${request.method} ${request.path}"
+      CorsConfiguration:
+        AllowOrigins:
+          - "*"
+        AllowMethods:
+          - "*"
+
+  HTTPApiIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref HTTPApi
+      IntegrationType: AWS_PROXY
+      IntegrationMethod: POST
+      PayloadFormatVersion: "2.0"
+      IntegrationUri:
+        Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ServersendmessageFunction.Arn}/invocations
+
+  HTTPApiRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref HTTPApi
+      RouteKey: "POST /messages"
+      AuthorizationType: NONE
+      Target: !Join
+        - "/"
+        - - "integrations"
+          - !Ref HTTPApiIntegration
+
+  HTTPApiStage:
+    Type: AWS::ApiGatewayV2::Stage
+    Properties:
+      ApiId: !Ref HTTPApi
+      StageName: "demo"
+      AutoDeploy: true
+      AccessLogSettings:
+        DestinationArn: !GetAtt HTTPApiLogGroup.Arn
+        Format: "$context.identity.sourceIp - - [$context.requestTime] \"$context.httpMethod $context.routeKey $context.protocol\" $context.status $context.responseLength $context.requestId"
+
+  HTTPApiLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/apigateway/${HTTPApi}"
+      RetentionInDays: 14
+
   ServersendmessageFunction:
     Type: AWS::Lambda::Function
     Properties:
@@ -149,6 +198,7 @@ Resources:
     Type: AWS::Lambda::Permission
     DependsOn:
       - WebSocketApi
+      - HTTPApi
     Properties:
       FunctionName: !Ref ServersendmessageFunction
       Action: lambda:InvokeFunction
