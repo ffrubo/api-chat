@@ -263,17 +263,9 @@ Outputs:
   WebSocketURI:
     Description: The URI of the Websocket API Gateway
     Value: !Sub "wss://${WebSocketApi}.execute-api.${AWS::Region}.amazonaws.com/${Stage}"
-  WebSocketApiId:
-    Description: The ID of the Websocket API Gateway
-    Value: !Ref WebSocketApi
-  WebSocketApiStage:
-    Description: The stage of the Websocket API Gateway
-    Value: !Ref Stage
-  ConnectFunctionArn:
-    Description: The ARN of the connect lambda function
-    Value: !GetAtt ConnectFunction.Arn
-  SendmessageFunctionArn:
-    Description: The ARN of the sendmessage lambda function
-    Value: !GetAtt SendmessageFunction.Arn
+
+  HTTPApiURI:
+    Description: The URI of the HTTP API Gateway
+    Value: !Sub "https://${HTTPApi}.execute-api.${AWS::Region}.amazonaws.com/${Stage}"
 
 
