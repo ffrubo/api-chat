@@ -1,12 +1,73 @@
 AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  Demo stack for managed websocket connections
 
-Parameters:
-  ConnectionsUrl:
-    Description: The HTTP URL to send a message to a client via the Websocket API Gateway
-    Type: String
+  CloudFormation template for API Gateway with a Websocket
+  and a rest API, connected to three lambda functions.
 
 Resources:
-  LambdaFunction:
+  WebSocketApi:
+    Type: AWS::ApiGatewayV2::Api
+    Properties:
+      Name: "WebSocketApi"
+      ProtocolType: WEBSOCKET
+      RouteSelectionExpression: "$request.body.action"
+  ConnectRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref WebSocketApi
+      RouteKey: $connect
+      AuthorizationType: NONE
+      Target: !Join
+        - "/"
+        - - "integrations"
+          - !Ref ConnectIntegration
+  ConnectIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref WebSocketApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri:
+        Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ConnectFunction.Arn}/invocations
+  SendmessageRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref WebSocketApi
+      RouteKey: sendmessage
+      AuthorizationType: NONE
+      RouteResponseSelectionExpression: $default
+      Target: !Join
+        - "/"
+        - - "integrations"
+          - !Ref SendmessageIntegration
+  SendmessageIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref WebSocketApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri:
+        Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${SendmessageFunction.Arn}/invocations
+  SendmessageRouteResponse:
+    Type: AWS::ApiGatewayV2::RouteResponse
+    Properties:
+      ApiId: !Ref WebSocketApi
+      RouteId: !Ref SendmessageRoute
+      RouteResponseKey: $default
+  Deployment:
+    Type: AWS::ApiGatewayV2::Deployment
+    DependsOn:
+      - ConnectRoute
+      - SendmessageRoute
+    Properties:
+      ApiId: !Ref WebSocketApi
+  Stage:
+    Type: AWS::ApiGatewayV2::Stage
+    Properties:
+      ApiId: !Ref WebSocketApi
+      DeploymentId: !Ref Deployment
+      StageName: "demo"
+
+  ConnectFunction:
     Type: AWS::Lambda::Function
     Properties:
       FunctionName: connect
@@ -22,8 +83,17 @@ Resources:
       Code:
         S3Bucket: ffrub-etc
         S3Key: connect-main.zip
+  ConnectPermission:
+    Type: AWS::Lambda::Permission
+    DependsOn:
+      - WebSocketApi
+    Properties:
+      FunctionName: !Ref ConnectFunction
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      # SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${WebSocketApi}/*" # tbd - check if that works
 
-  LambdaFunction2:
+  SendmessageFunction:
     Type: AWS::Lambda::Function
     Properties:
       FunctionName: sendmessage
@@ -39,8 +109,17 @@ Resources:
       Code:
         S3Bucket: ffrub-etc
         S3Key: sendmessage-main.zip
+  SendmessagePermission:
+    Type: AWS::Lambda::Permission
+    DependsOn:
+      - WebSocketApi
+    Properties:
+      FunctionName: !Ref SendmessageFunction
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      # SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${WebSocketApi}/*" # tbd - check if that works
 
-  LambdaFunction3:
+  ServersendmessageFunction:
     Type: AWS::Lambda::Function
     Properties:
       FunctionName: serversendmessage
@@ -58,7 +137,16 @@ Resources:
         S3Key: serversendmessage-main.zip
       Environment:
         Variables:
-          CONNECTIONS_URL: !Ref ConnectionsUrl
+          CONNECTIONS_URL: !Sub "https://${WebSocketApi}.execute-api.${AWS::Region}.amazonaws.com/${Stage}/@connections"
+  ServersendmessagePermission:
+    Type: AWS::Lambda::Permission
+    DependsOn:
+      - WebSocketApi
+    Properties:
+      FunctionName: !Ref ServersendmessageFunction
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      # SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${WebSocketApi}/*" # tbd - check if that works
 
   LambdaFunctionRole:
     Type: AWS::IAM::Role
@@ -93,5 +181,21 @@ Resources:
                   - execute-api:Invoke
                   - execute-api:ManageConnections
                 Resource: "arn:aws:execute-api:*:*:*"
+Outputs:
+  WebSocketURI:
+    Description: The URI of the Websocket API Gateway
+    Value: !Sub "wss://${WebSocketApi}.execute-api.${AWS::Region}.amazonaws.com/${Stage}"
+  WebSocketApiId:
+    Description: The ID of the Websocket API Gateway
+    Value: !Ref WebSocketApi
+  WebSocketApiStage:
+    Description: The stage of the Websocket API Gateway
+    Value: !Ref Stage
+  ConnectFunctionArn:
+    Description: The ARN of the connect lambda function
+    Value: !GetAtt ConnectFunction.Arn
+  SendmessageFunctionArn:
+    Description: The ARN of the sendmessage lambda function
+    Value: !GetAtt SendmessageFunction.Arn
 
 
