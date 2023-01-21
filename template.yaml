@@ -59,20 +59,37 @@ Resources:
       RouteId: !Ref SendmessageRoute
       RouteResponseKey: $default
 
-  Deployment:
-    Type: AWS::ApiGatewayV2::Deployment
-    DependsOn:
-      - ConnectRoute
-      - SendmessageRoute
-    Properties:
-      ApiId: !Ref WebSocketApi
-
   Stage:
     Type: AWS::ApiGatewayV2::Stage
     Properties:
       ApiId: !Ref WebSocketApi
-      DeploymentId: !Ref Deployment
       StageName: "demo"
+      AutoDeploy: true
+      DefaultRouteSettings:
+        DataTraceEnabled: true
+        LoggingLevel: INFO
+        ThrottlingBurstLimit: 100
+        ThrottlingRateLimit: 100
+
+  WebSocketApiAccount:
+    Type: AWS::ApiGateway::Account
+    Properties:
+      CloudWatchRoleArn: !GetAtt WebSocketApiLoggingRole.Arn
+
+  WebSocketApiLoggingRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - apigateway.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Path: "/"
+      ManagedPolicyArns: [ "arn:aws:iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs" ]
 
   ConnectFunction:
     Type: AWS::Lambda::Function
