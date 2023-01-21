@@ -96,7 +96,7 @@ Resources:
       FunctionName: !Ref ConnectFunction
       Action: lambda:InvokeFunction
       Principal: apigateway.amazonaws.com
-      # SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${WebSocketApi}/*" # tbd - check if that works
+      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${WebSocketApi}/*"
 
   SendmessageFunction:
     Type: AWS::Lambda::Function
@@ -123,7 +123,7 @@ Resources:
       FunctionName: !Ref SendmessageFunction
       Action: lambda:InvokeFunction
       Principal: apigateway.amazonaws.com
-      # SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${WebSocketApi}/*" # tbd - check if that works
+      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${WebSocketApi}/*"
 
   HTTPApi:
     Type: AWS::ApiGatewayV2::Api
@@ -203,7 +203,7 @@ Resources:
       FunctionName: !Ref ServersendmessageFunction
       Action: lambda:InvokeFunction
       Principal: apigateway.amazonaws.com
-      # SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${WebSocketApi}/*" # tbd - check if that works
+      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${HTTPApi}/*"
 
   ApiGatewayAccount:
     Type: AWS::ApiGateway::Account
